@@ -1,0 +1,16 @@
+export const REFERENCES = [
+  "Hakanson, L. (1980). An ecological risk index for aquatic pollution control. A sedimentological approach. Water Research, 14(8), 975–1001.",
+  "Müller, G. (1969). Index of geoaccumulation in sediments of the Rhine River. GeoJournal, 2, 108–118.",
+  "Tomlinson, D. L., Wilson, J. G., Harris, C. R., & Jeffrey, D. W. (1980). Problems in the assessment of heavy-metal levels in estuaries and the formation of a pollution index. Helgoländer Meeresuntersuchungen, 33, 566–575.",
+  "Turekian, K. K., & Wedepohl, K. H. (1961). Distribution of the elements in some major units of the Earth's crust. GSA Bulletin, 72(2), 175–192.",
+  "Nemerow, N. L. (1974). Scientific Stream Pollution Analysis. McGraw-Hill, New York.",
+  "Shepard, D. (1968). A two-dimensional interpolation function for irregularly-spaced data. Proc. 23rd ACM National Conference, 517–524.",
+  "Matheron, G. (1963). Principles of geostatistics. Economic Geology, 58(8), 1246–1266.",
+  "WHO (2022). Guidelines for Drinking-water Quality, 4th ed. incorporating the 1st and 2nd addenda. Genève : OMS.",
+  "CCME (1999, mise à jour sept. 2007). Recommandations canadiennes pour la qualité des sols : environnement et santé humaine — usages agricole, résidentiel/parc, commercial et industriel.",
+  "Santé Canada (2024). Recommandations pour la qualité de l'eau potable au Canada — Tableau sommaire. Ottawa : Bureau de la qualité de l'eau et de l'air.",
+  "Ontario, Ministère de l'Environnement, de la Protection de la nature et des Parcs (MECP). Critères de qualité de l'air ambiant (AAQC) ; Règl. de l'Ont. 337 (RRO 1990).",
+  "Union européenne (2020). Directive (UE) 2020/2184 relative à la qualité des eaux destinées à la consommation humaine.",
+  "Union européenne (2004, 2008). Directives 2004/107/CE et 2008/50/CE concernant la qualité de l'air ambiant.",
+  "WHO (2000, 2021). Air Quality Guidelines for Europe ; WHO Global Air Quality Guidelines.",
+];
