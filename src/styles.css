@@ -1,6 +1,7 @@
 @import "tailwindcss" source(none);
 @source "../src";
 @import "tw-animate-css";
+@import "leaflet/dist/leaflet.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -47,7 +48,7 @@
   --color-success-foreground: var(--success-foreground);
   --color-warning: var(--warning);
   --color-warning-foreground: var(--warning-foreground);
-  --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Plus Jakarta Sans", "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, monospace;
   --color-input: var(--input);
   --color-ring: var(--ring);
@@ -68,14 +69,15 @@
 }
 
 :root {
-  --radius: 0.75rem;
+  --radius: 1rem;
   --background: oklch(0.975 0.005 235);
   --foreground: oklch(0.24 0.03 250);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.24 0.03 250);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.24 0.03 250);
-  --primary: oklch(0.42 0.12 250);
+  --page-bg: linear-gradient(180deg, oklch(0.86 0.07 235) 0%, oklch(0.92 0.05 285) 45%, oklch(0.975 0.01 240) 100%);
+  --primary: oklch(0.27 0.13 280);
   --primary-foreground: oklch(0.98 0.005 240);
   --secondary: oklch(0.94 0.015 170);
   --secondary-foreground: oklch(0.35 0.08 165);
@@ -91,8 +93,8 @@
   --warning-foreground: oklch(0.42 0.1 50);
   --border: oklch(0.91 0.01 245);
   --input: oklch(0.89 0.012 245);
-  --ring: oklch(0.55 0.12 250);
-  --chart-1: oklch(0.45 0.13 250);
+  --ring: oklch(0.45 0.14 275);
+  --chart-1: oklch(0.4 0.14 275);
   --chart-2: oklch(0.6 0.13 162);
   --chart-3: oklch(0.72 0.15 60);
   --chart-4: oklch(0.58 0.2 28);
@@ -103,7 +105,7 @@
   --chart-9: oklch(0.78 0.1 95);
   --sidebar: oklch(0.99 0.003 240);
   --sidebar-foreground: oklch(0.26 0.03 250);
-  --sidebar-primary: oklch(0.42 0.12 250);
+  --sidebar-primary: oklch(0.27 0.13 280);
   --sidebar-primary-foreground: oklch(0.98 0 0);
   --sidebar-accent: oklch(0.95 0.01 240);
   --sidebar-accent-foreground: oklch(0.26 0.03 250);
@@ -118,8 +120,9 @@
   --card-foreground: oklch(0.94 0.01 240);
   --popover: oklch(0.225 0.025 250);
   --popover-foreground: oklch(0.94 0.01 240);
-  --primary: oklch(0.66 0.13 245);
-  --primary-foreground: oklch(0.16 0.03 250);
+  --page-bg: linear-gradient(180deg, oklch(0.27 0.07 265) 0%, oklch(0.21 0.04 270) 50%, oklch(0.16 0.02 255) 100%);
+  --primary: oklch(0.74 0.12 270);
+  --primary-foreground: oklch(0.16 0.03 270);
   --secondary: oklch(0.3 0.04 170);
   --secondary-foreground: oklch(0.9 0.05 165);
   --muted: oklch(0.27 0.02 250);
@@ -135,7 +138,7 @@
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 14%);
   --ring: oklch(0.6 0.12 245);
-  --chart-1: oklch(0.66 0.13 245);
+  --chart-1: oklch(0.74 0.12 270);
   --chart-2: oklch(0.7 0.14 162);
   --chart-3: oklch(0.78 0.15 65);
   --chart-4: oklch(0.68 0.19 25);
@@ -161,8 +164,39 @@
 
   body {
     background-color: var(--color-background);
+    background-image: var(--page-bg);
+    background-attachment: fixed;
     color: var(--color-foreground);
     font-family: var(--font-sans);
   }
   h1, h2, h3 { font-weight: 600; }
+}
+
+/* Effet « verre » inspiré du design de référence : cartes translucides, flou, grands arrondis */
+@layer components {
+  .glass {
+    background: color-mix(in oklab, var(--card) 72%, transparent);
+    backdrop-filter: blur(20px) saturate(1.4);
+    -webkit-backdrop-filter: blur(20px) saturate(1.4);
+    border: 1px solid color-mix(in oklab, var(--card) 65%, transparent);
+    box-shadow: 0 12px 40px -14px color-mix(in oklab, var(--primary) 28%, transparent);
+  }
+}
+
+/* Carte Leaflet : intégration au thème */
+.leaflet-container {
+  font-family: var(--font-sans);
+  background: var(--muted);
+}
+.leaflet-tooltip.etm-label {
+  background: color-mix(in oklab, var(--card) 88%, transparent);
+  border: none;
+  border-radius: 9999px;
+  box-shadow: 0 1px 4px rgb(0 0 0 / 0.25);
+  color: var(--foreground);
+  font-size: 11px;
+  padding: 1px 8px;
+}
+.leaflet-tooltip.etm-label::before {
+  display: none;
 }

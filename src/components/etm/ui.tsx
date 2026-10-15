@@ -7,9 +7,9 @@ import type { Interp } from "@/lib/etm/analysis";
 
 export function PageHeader({ title, desc, children }: { title: string; desc?: string; children?: ReactNode }) {
   return (
-    <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
+    <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
+        <h1 className="text-3xl font-light tracking-tight text-primary sm:text-4xl">{title}</h1>
         {desc && <p className="mt-1 max-w-2xl text-sm text-muted-foreground">{desc}</p>}
       </div>
       {children}
@@ -19,7 +19,7 @@ export function PageHeader({ title, desc, children }: { title: string; desc?: st
 
 export function Panel({ title, desc, children, className, actions }: { title?: string; desc?: string; children: ReactNode; className?: string; actions?: ReactNode }) {
   return (
-    <section className={cn("rounded-xl border bg-card p-5 shadow-sm", className)}>
+    <section className={cn("glass rounded-3xl p-6", className)}>
       {(title || actions) && (
         <div className="mb-4 flex flex-wrap items-start justify-between gap-2">
           <div>
@@ -53,7 +53,7 @@ export function StatusBadge({ s }: { s: string }) {
 
 export function EmptyData() {
   return (
-    <div className="flex flex-col items-center justify-center rounded-xl border border-dashed bg-card p-12 text-center">
+    <div className="flex flex-col items-center justify-center glass rounded-3xl border-dashed p-12 text-center">
       <Database className="mb-3 h-8 w-8 text-muted-foreground" />
       <h2 className="font-semibold">Aucune donnée pour cette matrice</h2>
       <p className="mt-1 max-w-sm text-sm text-muted-foreground">Importez un fichier CSV ou chargez le jeu d'exemple, puis vérifiez la matrice sélectionnée dans la barre latérale.</p>
@@ -71,7 +71,7 @@ export function NativeSelect({ value, onChange, options, className }: { value: s
     <select
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className={cn("h-9 rounded-md border border-input bg-background px-3 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring", className)}
+      className={cn("h-9 rounded-full border border-input bg-background/80 px-4 text-sm focus:outline-none focus:ring-2 focus:ring-ring", className)}
     >
       {options.map((o) => (
         <option key={o.value} value={o.value}>
