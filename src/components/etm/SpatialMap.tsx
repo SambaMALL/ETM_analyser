@@ -68,6 +68,7 @@ export function SpatialMap({
   limit,
   limitLabel,
   neutralPoints,
+  compact,
 }: {
   points: SPoint[];
   grid?: Grid | null | undefined;
@@ -77,6 +78,8 @@ export function SpatialMap({
   limitLabel?: string | undefined;
   /** Stations en blanc, sans code couleur (ex. carte d'incertitude, où la couleur représente autre chose). */
   neutralPoints?: boolean | undefined;
+  /** Version réduite (tableau de bord) : remplit son conteneur, sans boutons ni sélecteur de fond. */
+  compact?: boolean | undefined;
 }) {
   const bbox = grid?.bbox ?? bboxOf(points, 0.15);
   const vals = neutralPoints ? [] : points.map((p) => p.value).filter(Number.isFinite);
@@ -86,7 +89,7 @@ export function SpatialMap({
   const exceeds = (v: number) => limit != null && Number.isFinite(limit) && v > limit;
 
   const [base, setBase] = useState<BaseKey>("clair");
-  const [showLabels, setShowLabels] = useState(true);
+  const [showLabels, setShowLabels] = useState(!compact);
   const [fullscreen, setFullscreen] = useState(false);
   const [ready, setReady] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -244,10 +247,12 @@ export function SpatialMap({
   };
 
   return (
-    <div ref={wrapRef} className={cn("space-y-3", fullscreen && "flex h-screen flex-col bg-card p-4")}>
-      <div className={cn("relative isolate overflow-hidden rounded-2xl border", fullscreen ? "min-h-0 flex-1" : "h-[460px] sm:h-[560px]")}>
+    <div ref={wrapRef} className={cn(compact ? "flex h-full min-h-0 flex-col gap-2" : "space-y-3", fullscreen && "flex h-screen flex-col bg-card p-4")}>
+      <div className={cn("relative isolate overflow-hidden rounded-2xl border", fullscreen || compact ? "min-h-0 flex-1" : "h-[460px] sm:h-[560px]")}>
         <div ref={mapEl} className="absolute inset-0" />
 
+        {!compact && (
+        <>
         {/* Choix du fond de carte */}
         <div className="glass absolute left-1/2 top-3 z-[1000] flex -translate-x-1/2 gap-0.5 rounded-full p-1">
           {(Object.keys(BASEMAPS) as BaseKey[]).map((k) => (
@@ -281,6 +286,8 @@ export function SpatialMap({
           <Compass className="h-4 w-4" />
           <span>N</span>
         </div>
+        </>
+        )}
       </div>
 
       <div className="flex flex-wrap items-center gap-3 text-xs">

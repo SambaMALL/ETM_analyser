@@ -329,7 +329,7 @@ function validityMask(pts: SPoint[]) {
  * Évalue f sur une grille régulière. Les cellules hors de l'emprise des stations valent NaN
  * (non colorées) ; `floor` borne les valeurs par le bas (ex. 0 pour une concentration).
  */
-export function computeGrid(pts: SPoint[], f: (lat: number, lon: number) => number, nx = 80, opts: { mask?: boolean; floor?: number } = {}): Grid {
+export function computeGrid(pts: SPoint[], f: (lat: number, lon: number) => number, nx = 80, opts: { mask?: boolean | undefined; floor?: number | undefined } = {}): Grid {
   const bbox = bboxOf(pts);
   const kLat = Math.cos((((bbox.minLat + bbox.maxLat) / 2) * Math.PI) / 180);
   const ny = Math.max(10, Math.round((nx * (bbox.maxLat - bbox.minLat)) / ((bbox.maxLon - bbox.minLon) * kLat)));
