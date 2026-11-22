@@ -2,9 +2,14 @@ import { AlignmentType, Document, HeadingLevel, ImageRun, Packer, Paragraph, Tab
 import { downloadBlob, fmt, interp, type ConfRow, type IndexRow, type Row, type StationIdx } from "./analysis";
 import { REFERENCES } from "./references";
 import { bestIdwPower, computeGrid, crossValidate, fitVariogram, idwCrossValidate, idwPredictor, krigingPredictor, krigingStdPredictor, mergeDuplicates, type CVResult, type VModel } from "./spatial";
+import { interpretConformity, interpretIndices, interpretLimits, interpretSpatial, interpretSynthesis, type Item } from "./interpretation";
 import { renderMapPng, renderVariogramPng, type Figure, type MapOptions, type MapSet } from "./report-maps";
 
 const W = 9026;
+const HI2 = (t: string) => new Paragraph({ heading: HeadingLevel.HEADING_2, keepNext: true, spacing: { before: 200, after: 80 }, children: [new TextRun(t)] });
+/** Paragraphes d'interprétation : intitulé en gras (élément, station…) suivi du texte. */
+const paras = (items: Item[]) =>
+  items.map((it) => new Paragraph({ spacing: { after: 100 }, children: [...(it.title ? [new TextRun({ text: `${it.title} — `, bold: true, size: 20 })] : []), new TextRun({ text: it.text, size: 20 })] }));
 function table(headers: string[], rows: (string | number | null)[][]) {
   const cw = Math.floor(W / headers.length);
   const cell = (t: string, bold = false) =>
@@ -37,7 +42,7 @@ function barPng(title: string, labels: string[], values: number[]): Uint8Array {
 const MODEL_LABEL: Record<VModel, string> = { spherical: "sphérique", exponential: "exponentiel", gaussian: "gaussien" };
 
 /** Section « Cartographie et interpolation » : cartes, variogramme, validation croisée. */
-async function mapsSection(sets: MapSet[], o: MapOptions, no: number): Promise<(Paragraph | Table)[]> {
+async function mapsSection(sets: MapSet[], o: MapOptions, no: number, withText: boolean): Promise<(Paragraph | Table)[]> {
   const out: (Paragraph | Table)[] = [];
   const H1 = (t: string) => new Paragraph({ heading: HeadingLevel.HEADING_1, keepNext: true, spacing: { before: 300, after: 150 }, children: [new TextRun(t)] });
   const H2 = (t: string) => new Paragraph({ heading: HeadingLevel.HEADING_2, keepNext: true, spacing: { before: 240, after: 100 }, children: [new TextRun(t)] });
@@ -63,6 +68,8 @@ async function mapsSection(sets: MapSet[], o: MapOptions, no: number): Promise<(
     const label = s.label + (s.unit ? ` (${s.unit})` : "");
     const limNote = s.limit != null ? ` Cercle rouge : dépassement de ${s.limitLabel ?? "la norme"}.` : "";
     const cvRows: string[][] = [];
+    let idwInfo: { power: number; cv: CVResult } | undefined;
+    let krigInfo: { model: VModel; fit: ReturnType<typeof fitVariogram>; cv: CVResult } | undefined;
     try {
       if (o.stations) {
         out.push(figure(await renderMapPng({ points: s.points, grid: null, label, limit: s.limit }), "Carte des stations"));
@@ -73,7 +80,9 @@ async function mapsSection(sets: MapSet[], o: MapOptions, no: number): Promise<(
         const grid = computeGrid(pts, idwPredictor(pts, bp.power), 80, { floor: s.floor });
         out.push(figure(await renderMapPng({ points: s.points, grid, label, limit: s.limit }), "Carte IDW"));
         out.push(cap(`Figure ${fig++} — Interpolation IDW de ${label}, puissance optimale p = ${bp.power.toFixed(1)} (RMSE de validation croisée : ${fmt(bp.rmse, 3)}).${limNote}`));
-        cvRows.push(cvLine("IDW", `p = ${bp.power.toFixed(1)}`, idwCrossValidate(pts, bp.power)));
+        const icv = idwCrossValidate(pts, bp.power);
+        idwInfo = { power: bp.power, cv: icv };
+        cvRows.push(cvLine("IDW", `p = ${bp.power.toFixed(1)}`, icv));
       }
       if (o.krig || o.std || o.variogram) {
         const fit = fitVariogram(pts, o.model);
@@ -92,15 +101,23 @@ async function mapsSection(sets: MapSet[], o: MapOptions, no: number): Promise<(
           out.push(figure(renderVariogramPng(fit, o.model, MODEL_LABEL[o.model]), "Variogramme"));
           out.push(cap(`Figure ${fig++} — Variogramme expérimental et modèle ${MODEL_LABEL[o.model]} ajusté (${pts.length} stations).`));
         }
+        krigInfo = { model: o.model, fit, cv };
         cvRows.push(cvLine("Krigeage ordinaire", MODEL_LABEL[o.model], cv));
         out.push(table(["Modèle", "Pépite", "Palier", "Portée (km)", "Part de pépite", "Structure spatiale"], [[MODEL_LABEL[o.model], fmt(fit.params.nugget, 3), fmt(fit.params.sill, 3), fmt(fit.params.range, 2), `${fmt(fit.nugRatio * 100, 0)} %`, fit.structure]]));
         out.push(P2(""));
-        if (pts.length < 20) out.push(P2(`Attention : seulement ${pts.length} stations. Le variogramme repose sur très peu de paires de points (30 à 50 stations sont recommandées) ; le krigeage reste indicatif.`));
-        if (fit.structure === "aucune") out.push(P2("Aucune structure spatiale nette n'est détectée (effet de pépite dominant) : le krigeage retombe sur la moyenne loin des stations."));
+        if (!withText && pts.length < 20) out.push(P2(`Attention : seulement ${pts.length} stations. Le variogramme repose sur très peu de paires de points (30 à 50 stations sont recommandées) ; le krigeage reste indicatif.`));
+        if (!withText && fit.structure === "aucune") out.push(P2("Aucune structure spatiale nette n'est détectée (effet de pépite dominant) : le krigeage retombe sur la moyenne loin des stations."));
       }
       if (cvRows.length) {
         out.push(table(["Méthode", "Paramètre", "RMSE", "MAE", "Biais", "Gain vs. moyenne"], cvRows));
         out.push(P2(""));
+      }
+      if (withText) {
+        const txt = interpretSpatial({ label, points: pts, idw: idwInfo, krig: krigInfo, std: o.std && !!krigInfo });
+        if (txt.length) {
+          out.push(new Paragraph({ keepNext: true, spacing: { before: 80, after: 60 }, children: [new TextRun({ text: "Interprétation", bold: true, size: 20 })] }));
+          for (const t of txt) out.push(P2(t));
+        }
       }
     } catch (e) {
       console.error(e);
@@ -110,13 +127,17 @@ async function mapsSection(sets: MapSet[], o: MapOptions, no: number): Promise<(
   return out;
 }
 
-export async function buildReport(d: { matrix: string; normName: string; rows: Row[]; conf: ConfRow[]; idx: IndexRow[]; stations: StationIdx[]; elements: string[]; kpi: { stations: number; total: number; ok: number; over: number; rate: number }; maps?: { sets: MapSet[]; opts: MapOptions } | undefined }) {
+export async function buildReport(d: { matrix: string; normName: string; rows: Row[]; conf: ConfRow[]; idx: IndexRow[]; stations: StationIdx[]; elements: string[]; kpi: { stations: number; total: number; ok: number; over: number; rate: number }; maps?: { sets: MapSet[]; opts: MapOptions } | undefined; interpretations?: boolean | undefined }) {
   const H = (t: string) => new Paragraph({ heading: HeadingLevel.HEADING_1, spacing: { before: 300, after: 150 }, children: [new TextRun(t)] });
   const P = (t: string) => new Paragraph({ spacing: { after: 120 }, children: [new TextRun({ text: t, size: 20 })] });
   const img = (data: Uint8Array) => new Paragraph({ children: [new ImageRun({ type: "png", data, transformation: { width: 600, height: 280 }, altText: { title: "Graphique", description: "Graphique", name: "chart" } })] });
   const over = d.conf.filter((c) => c.status === "Dépassement");
-  const maps = d.maps ? await mapsSection(d.maps.sets, d.maps.opts, 5) : [];
-  const nx = maps.length ? 6 : 5;
+  const on = d.interpretations !== false;
+  const maps = d.maps ? await mapsSection(d.maps.sets, d.maps.opts, 5, on) : [];
+  let sec = maps.length ? 6 : 5;
+  const nLim = on ? sec++ : 0;
+  const nRaw = sec++;
+  const nBib = sec++;
   const doc = new Document({
     styles: { default: { document: { run: { font: "Arial", size: 20 } } } },
     sections: [{
@@ -125,21 +146,25 @@ export async function buildReport(d: { matrix: string; normName: string; rows: R
         P(`Matrice : ${d.matrix} — Référentiel : ${d.normName} — Généré le ${new Date().toLocaleDateString("fr-FR")}`),
         H("1. Synthèse"),
         P(`${d.kpi.stations} stations, ${d.kpi.total} mesures, ${d.kpi.ok} conformes, ${d.kpi.over} dépassements. Taux de conformité : ${d.kpi.rate.toFixed(1)} %.`),
+        ...(on ? [HI2("Interprétation"), ...paras(interpretSynthesis(d))] : []),
         H("2. Coordonnées des stations"),
         table(["Station", "Latitude", "Longitude"], d.stations.map((s) => [s.station, s.lat, s.lon])),
         H("3. Résultats de conformité"),
         img(barPng("Dépassements par élément", d.elements, d.elements.map((e) => over.filter((o) => o.element === e).length))),
+        ...(on ? [HI2("Interprétation"), ...paras(interpretConformity(d))] : []),
         table(["Station", "Date", "Élément", "C", "Unité", "Limite", "Ratio", "Statut"], over.map((r) => [r.station, r.date, r.element, fmt(r.concentration, 4), r.unite, fmt(r.limit, 4), fmt(r.ratio, 2), r.status])),
         H("4. Indices de pollution"),
         img(barPng("Indice de risque écologique RI par station", d.stations.map((s) => s.station), d.stations.map((s) => s.ri))),
         table(["Station", "Élément", "FC", "Igeo", "Er", "Interprétation Igeo"], d.idx.map((r) => [r.station, r.element, fmt(r.fc, 2), fmt(r.igeo, 2), fmt(r.er, 1), interp.igeo(r.igeo).label])),
         P(""),
         table(["Station", "PLI", "Cd", "RI", "Nemerow", "Interprétation RI"], d.stations.map((s) => [s.station, fmt(s.pli, 2), fmt(s.cd, 2), fmt(s.ri, 1), fmt(s.nemerow, 2), interp.ri(s.ri).label])),
+        ...(on ? [HI2("Interprétation"), ...paras(interpretIndices(d))] : []),
         ...maps,
-        H(`${nx}. Données brutes`),
+        ...(on ? [H(`${nLim}. Limites et précautions`), ...paras(interpretLimits(d))] : []),
+        H(`${nRaw}. Données brutes`),
         P(d.rows.length > 300 ? `300 premières lignes sur ${d.rows.length}.` : ""),
         table(["Station", "Date", "Élément", "Concentration", "Unité"], d.rows.slice(0, 300).map((r) => [r.station, r.date, r.element, fmt(r.concentration, 4), r.unite])),
-        H(`${nx + 1}. Bibliographie`),
+        H(`${nBib}. Bibliographie`),
         ...REFERENCES.map((r) => P(r)),
       ],
     }],
