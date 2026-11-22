@@ -3,6 +3,7 @@ import { useMemo, useState, type ReactNode } from "react";
 import { FileText, Download, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { EmptyData, NativeSelect, PageHeader, Panel } from "@/components/etm/ui";
 import { confCols, exportCols, idxCols, stationCols } from "@/components/etm/columns";
 import { useAnalysis } from "@/lib/etm/store";
@@ -35,6 +36,7 @@ function Report() {
   const a = useAnalysis();
   const [busy, setBusy] = useState(false);
   const [withText, setWithText] = useState(true);
+  const [cover, setCover] = useState({ title: "", author: "", organization: "", site: "" });
   const [v, setV] = useState("conc");
   const [els, setEls] = useState<string[] | null>(null);
   const [model, setModel] = useState<VModel>("spherical");
@@ -80,6 +82,7 @@ function Report() {
         matrix: a.matrix, normName: a.norm?.name ?? "", rows: a.matrixRows, conf: a.conf, idx: a.idx, stations: a.stations, elements: a.elements, kpi: a.kpi,
         maps: anyFigure && sets.length ? { sets, opts: { ...inc, model } } : undefined,
         interpretations: withText,
+        cover,
       });
       toast.success("Rapport Word généré");
     } catch (e) {
@@ -102,12 +105,27 @@ function Report() {
             <Button variant="outline" className="w-full justify-start" onClick={() => exportCols("indices_stations.csv", stationCols, a.stations)}><Download className="mr-2 h-4 w-4" />Indices intégrés par station</Button>
           </div>
         </Panel>
-        <Panel title="Rapport scientifique Word (.docx)" desc="Synthèse, coordonnées, conformité, indices, cartes d'interpolation et variogramme (options ci-dessous), données brutes et bibliographie.">
+        <Panel title="Rapport scientifique Word (.docx)" desc="Page de garde, table des matières, listes des figures et des tableaux, synthèse, conformité, indices, cartes d'interpolation, limites, données brutes et bibliographie.">
           <div className="mb-3"><Check checked={withText} onChange={setWithText}>Inclure les interprétations automatiques (synthèse, conformité, indices, cartes, limites)</Check></div>
           <Button onClick={gen} disabled={busy}>{busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileText className="mr-2 h-4 w-4" />}Générer le rapport</Button>
           {busy && <p className="mt-2 text-xs text-muted-foreground">Création des cartes en cours (chargement du fond de carte)…</p>}
         </Panel>
       </div>
+      <Panel title="Page de garde" desc="Informations affichées sur la couverture du rapport. Les champs vides sont simplement omis.">
+        <div className="grid gap-4 md:grid-cols-2">
+          {([
+            ["title", "Titre du rapport", "Rapport d'analyse des éléments traces métalliques"],
+            ["site", "Zone d'étude", "Ex. : Banlieue de Dakar"],
+            ["author", "Auteur(s)", "Nom et prénom"],
+            ["organization", "Organisme / établissement", "Ex. : Polytech Diamniadio — UAM"],
+          ] as const).map(([k, label, ph]) => (
+            <div key={k}>
+              <label className="mb-1 block text-xs font-medium">{label}</label>
+              <Input value={cover[k]} placeholder={ph} onChange={(e) => setCover({ ...cover, [k]: e.target.value })} />
+            </div>
+          ))}
+        </div>
+      </Panel>
       <Panel title="Cartes et variogramme du rapport" desc="Figures ajoutées au rapport Word : mêmes calculs que la page Cartographie (IDW avec puissance optimale, krigeage ordinaire, validation croisée).">
         <div className="grid gap-6 md:grid-cols-2">
           <div className="space-y-4">
