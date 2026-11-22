@@ -34,6 +34,7 @@ function Check({ checked, onChange, children }: { checked: boolean; onChange: (v
 function Report() {
   const a = useAnalysis();
   const [busy, setBusy] = useState(false);
+  const [withText, setWithText] = useState(true);
   const [v, setV] = useState("conc");
   const [els, setEls] = useState<string[] | null>(null);
   const [model, setModel] = useState<VModel>("spherical");
@@ -78,6 +79,7 @@ function Report() {
       await buildReport({
         matrix: a.matrix, normName: a.norm?.name ?? "", rows: a.matrixRows, conf: a.conf, idx: a.idx, stations: a.stations, elements: a.elements, kpi: a.kpi,
         maps: anyFigure && sets.length ? { sets, opts: { ...inc, model } } : undefined,
+        interpretations: withText,
       });
       toast.success("Rapport Word généré");
     } catch (e) {
@@ -101,6 +103,7 @@ function Report() {
           </div>
         </Panel>
         <Panel title="Rapport scientifique Word (.docx)" desc="Synthèse, coordonnées, conformité, indices, cartes d'interpolation et variogramme (options ci-dessous), données brutes et bibliographie.">
+          <div className="mb-3"><Check checked={withText} onChange={setWithText}>Inclure les interprétations automatiques (synthèse, conformité, indices, cartes, limites)</Check></div>
           <Button onClick={gen} disabled={busy}>{busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileText className="mr-2 h-4 w-4" />}Générer le rapport</Button>
           {busy && <p className="mt-2 text-xs text-muted-foreground">Création des cartes en cours (chargement du fond de carte)…</p>}
         </Panel>
