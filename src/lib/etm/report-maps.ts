@@ -68,7 +68,7 @@ function niceStep(range: number, n = 5) {
 }
 
 /**
- * Carte statique : fond CARTO (si le réseau le permet), surface interpolée, limites de classes,
+ * Carte statique : fond OpenStreetMap (si le réseau le permet), surface interpolée, limites de classes,
  * stations, échelle, nord et légende. Un échec de chargement des tuiles n'empêche pas la figure.
  */
 export async function renderMapPng(o: {
@@ -128,7 +128,7 @@ export async function renderMapPng(o: {
   for (let ty = r.y0; ty <= r.y1; ty++)
     for (let tx = r.x0; tx <= r.x1; tx++) {
       if (tx < 0 || ty < 0 || tx >= r.n || ty >= r.n) continue;
-      const url = `https://${"abcd"[(tx + ty) % 4]}.basemaps.cartocdn.com/light_all/${z}/${tx}/${ty}.png`;
+      const url = `https://tile.openstreetmap.org/${z}/${tx}/${ty}.png`;
       jobs.push(
         loadTile(url).then((img) => {
           if (!img) return;
@@ -142,6 +142,11 @@ export async function renderMapPng(o: {
     }
   await Promise.all(jobs);
   const basemap = tilesOk > 0;
+  if (basemap) {
+    // Voile blanc léger : le fond s'efface derrière la surface interpolée et les étiquettes
+    ctx.fillStyle = "rgba(255,255,255,0.38)";
+    ctx.fillRect(0, 0, W, MH);
+  }
 
   // Surface interpolée + limites de classes
   if (o.grid) {
@@ -248,7 +253,7 @@ export async function renderMapPng(o: {
 
   if (basemap) {
     ctx.font = "11px Arial";
-    const txt = "© OpenStreetMap © CARTO";
+    const txt = "© OpenStreetMap";
     const tw = ctx.measureText(txt).width;
     ctx.fillStyle = "rgba(255,255,255,0.8)";
     ctx.fillRect(W - tw - 14, MH - 20, tw + 12, 18);
