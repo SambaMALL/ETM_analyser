@@ -1,5 +1,8 @@
 import { bboxOf, colorAt, cssColor, gamma, type fitVariogram, type Grid, type SPoint, type VModel } from "./spatial";
-import { fmt } from "./analysis";
+import { fmt as fmtDot } from "./analysis";
+
+/** Nombres au format français (virgule décimale). */
+const fmt = (v: number | null | undefined, d?: number) => fmtDot(v, d).replace(".", ",");
 
 /** Un jeu de données à cartographier dans le rapport (un élément, ou une variable par station). */
 export interface MapSet {
@@ -65,7 +68,7 @@ function niceStep(range: number, n = 5) {
 }
 
 /**
- * Carte statique : fond CARTO (si le réseau le permet), surface interpolée, limites de classes,
+ * Carte statique : fond OpenStreetMap (si le réseau le permet), surface interpolée, limites de classes,
  * stations, échelle, nord et légende. Un échec de chargement des tuiles n'empêche pas la figure.
  */
 export async function renderMapPng(o: {
@@ -125,7 +128,7 @@ export async function renderMapPng(o: {
   for (let ty = r.y0; ty <= r.y1; ty++)
     for (let tx = r.x0; tx <= r.x1; tx++) {
       if (tx < 0 || ty < 0 || tx >= r.n || ty >= r.n) continue;
-      const url = `https://${"abcd"[(tx + ty) % 4]}.basemaps.cartocdn.com/light_all/${z}/${tx}/${ty}.png`;
+      const url = `https://tile.openstreetmap.org/${z}/${tx}/${ty}.png`;
       jobs.push(
         loadTile(url).then((img) => {
           if (!img) return;
@@ -139,6 +142,11 @@ export async function renderMapPng(o: {
     }
   await Promise.all(jobs);
   const basemap = tilesOk > 0;
+  if (basemap) {
+    // Voile blanc léger : le fond s'efface derrière la surface interpolée et les étiquettes
+    ctx.fillStyle = "rgba(255,255,255,0.38)";
+    ctx.fillRect(0, 0, W, MH);
+  }
 
   // Surface interpolée + limites de classes
   if (o.grid) {
@@ -184,7 +192,7 @@ export async function renderMapPng(o: {
   }
 
   // Stations
-  ctx.font = "bold 15px Arial";
+  ctx.font = "bold 17px Arial";
   for (const p of o.points) {
     const { x, y } = px(p.lat, p.lon);
     if (exceeds(p.value)) {
@@ -201,12 +209,16 @@ export async function renderMapPng(o: {
     ctx.lineWidth = 3;
     ctx.strokeStyle = o.neutral ? "#142032" : "#ffffff";
     ctx.stroke();
+    const left = x + 15 + ctx.measureText(p.station).width > W - 8;
+    ctx.textAlign = left ? "right" : "left";
+    const lx = left ? x - 15 : x + 15;
     ctx.lineJoin = "round";
     ctx.lineWidth = 4;
     ctx.strokeStyle = "rgba(255,255,255,0.92)";
-    ctx.strokeText(p.station, x + 15, y + 5);
+    ctx.strokeText(p.station, lx, y + 6);
     ctx.fillStyle = "#142032";
-    ctx.fillText(p.station, x + 15, y + 5);
+    ctx.fillText(p.station, lx, y + 6);
+    ctx.textAlign = "left";
   }
 
   // Échelle graphique
@@ -241,7 +253,7 @@ export async function renderMapPng(o: {
 
   if (basemap) {
     ctx.font = "11px Arial";
-    const txt = "© OpenStreetMap © CARTO";
+    const txt = "© OpenStreetMap";
     const tw = ctx.measureText(txt).width;
     ctx.fillStyle = "rgba(255,255,255,0.8)";
     ctx.fillRect(W - tw - 14, MH - 20, tw + 12, 18);
@@ -254,7 +266,7 @@ export async function renderMapPng(o: {
   ctx.strokeRect(0.5, 0.5, W - 1, MH - 1);
 
   // Légende
-  ctx.font = "14px Arial";
+  ctx.font = "16px Arial";
   const minTxt = fmt(min, 3);
   const maxTxt = fmt(max, 3);
   const x0 = 24 + ctx.measureText(minTxt).width + 12;
@@ -277,7 +289,7 @@ export async function renderMapPng(o: {
     ctx.fillText(`norme ${fmt(o.limit, 3)}`, lx, by + 36);
     ctx.textAlign = "left";
   }
-  ctx.font = "bold 14px Arial";
+  ctx.font = "bold 16px Arial";
   ctx.fillText(o.label, 24, MH + 72);
   if (o.limit != null && !o.neutral) {
     ctx.beginPath();
@@ -285,7 +297,7 @@ export async function renderMapPng(o: {
     ctx.strokeStyle = RED;
     ctx.lineWidth = 2.5;
     ctx.stroke();
-    ctx.font = "13px Arial";
+    ctx.font = "15px Arial";
     ctx.fillStyle = "#142032";
     ctx.fillText("Dépassement de la norme", W - 238, MH + 72);
   }
@@ -312,7 +324,7 @@ export function renderVariogramPng(fit: ReturnType<typeof fitVariogram>, model: 
   ctx.font = "bold 18px Arial";
   ctx.fillText(`Variogramme — modèle ${modelLabel}`, L, 30);
 
-  ctx.font = "12px Arial";
+  ctx.font = "15px Arial";
   ctx.strokeStyle = "#e2e8f0";
   ctx.lineWidth = 1;
   const sx = niceStep(xmax);
@@ -334,7 +346,7 @@ export function renderVariogramPng(fit: ReturnType<typeof fitVariogram>, model: 
   ctx.setLineDash([6, 5]);
   ctx.strokeStyle = "#94a3b8";
   ctx.beginPath(); ctx.moveTo(L, Y(fit.params.sill)); ctx.lineTo(cw - R, Y(fit.params.sill)); ctx.stroke();
-  ctx.fillStyle = "#64748b"; ctx.font = "12px Arial";
+  ctx.fillStyle = "#64748b"; ctx.font = "14px Arial";
   ctx.fillText(`palier ${fmt(fit.params.sill, 2)}`, L + 8, Y(fit.params.sill) - 6);
   if (fit.params.range <= xmax) {
     ctx.beginPath(); ctx.moveTo(X(fit.params.range), T); ctx.lineTo(X(fit.params.range), chh - B); ctx.stroke();
@@ -355,7 +367,7 @@ export function renderVariogramPng(fit: ReturnType<typeof fitVariogram>, model: 
   ctx.stroke();
 
   // Points expérimentaux
-  ctx.font = "11px Arial";
+  ctx.font = "13px Arial";
   for (const b of fit.bins) {
     ctx.beginPath();
     ctx.arc(X(b.h), Y(b.g), 6, 0, Math.PI * 2);
@@ -370,7 +382,7 @@ export function renderVariogramPng(fit: ReturnType<typeof fitVariogram>, model: 
   }
   ctx.textAlign = "center";
   ctx.fillStyle = "#1e293b";
-  ctx.font = "13px Arial";
+  ctx.font = "15px Arial";
   ctx.fillText("Distance h (km)", (L + cw - R) / 2, chh - 16);
   ctx.save();
   ctx.translate(20, (T + chh - B) / 2);
@@ -380,8 +392,8 @@ export function renderVariogramPng(fit: ReturnType<typeof fitVariogram>, model: 
 
   // Légende
   ctx.textAlign = "left";
-  ctx.font = "12px Arial";
-  const lx = cw - R - 250;
+  ctx.font = "14px Arial";
+  const lx = cw - R - 270;
   ctx.fillStyle = "#d97706"; ctx.beginPath(); ctx.arc(lx, 28, 5, 0, Math.PI * 2); ctx.fill();
   ctx.fillStyle = "#334155"; ctx.fillText("Empirique (n = paires)", lx + 10, 32);
   ctx.strokeStyle = "#1f3a8a"; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(lx + 150, 28); ctx.lineTo(lx + 175, 28); ctx.stroke();

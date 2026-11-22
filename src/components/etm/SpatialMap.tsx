@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 const CLASSES = 8;
 const DESTRUCTIVE = "#d93a2b";
 
-type BaseKey = "plan" | "clair" | "satellite" | "relief";
+type BaseKey = "plan" | "satellite" | "relief";
 interface BaseDef {
   label: string;
   url: string;
@@ -24,13 +24,6 @@ const BASEMAPS: Record<BaseKey, BaseDef> = {
     attribution: "© OpenStreetMap",
     maxZoom: 19,
     subdomains: "abc",
-  },
-  clair: {
-    label: "Clair",
-    url: "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
-    attribution: "© OpenStreetMap © CARTO",
-    maxZoom: 20,
-    subdomains: "abcd",
   },
   satellite: {
     label: "Satellite",
@@ -88,7 +81,7 @@ export function SpatialMap({
   const t = (v: number) => (max > min ? (v - min) / (max - min) : 0.5);
   const exceeds = (v: number) => limit != null && Number.isFinite(limit) && v > limit;
 
-  const [base, setBase] = useState<BaseKey>("clair");
+  const [base, setBase] = useState<BaseKey>("plan");
   const [showLabels, setShowLabels] = useState(!compact);
   const [fullscreen, setFullscreen] = useState(false);
   const [ready, setReady] = useState(false);
