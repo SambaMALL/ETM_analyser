@@ -1,5 +1,5 @@
 import Papa from "papaparse";
-import { BASE_UNIT, CRUST_BACKGROUND, TOXIC_FACTOR, type Matrix, type Norm } from "./norms";
+import { BASE_UNIT, CRUST_BACKGROUND, isParticulate, TOXIC_FACTOR, type Matrix, type Norm } from "./norms";
 
 export const REQUIRED = ["Station", "Latitude", "Longitude", "Date", "Matrice", "Element", "Concentration", "Unite"];
 
@@ -37,6 +37,10 @@ const EL_NAMES: Record<string, string> = {
   manganese: "Mn", vanadium: "V", antimoine: "Sb", antimony: "Sb", selenium: "Se",
 };
 export function normElement(s: string): string {
+  // Particules : « PM2.5 », « PM2,5 », « PM 2.5 », « PM₂.₅ », « pm10 »… (à traiter avant le repli sur les 2 premières lettres)
+  const pm = s.normalize("NFKD").toLowerCase().replace(/[^a-z0-9]/g, "");
+  if (pm === "pm25") return "PM2.5";
+  if (pm === "pm10") return "PM10";
   const k = strip(s).replace(/[^a-z]/g, "");
   if (!k) return "";
   if (EL_NAMES[k]) return EL_NAMES[k];
@@ -165,6 +169,8 @@ export function stationMeans(rows: Row[], matrix: Matrix) {
 export function computeIndices(rows: Row[], matrix: Matrix, refOf: (el: string) => number) {
   const means = stationMeans(rows, matrix);
   const idx: IndexRow[] = means.map((m) => {
+    // PM2.5 / PM10 : concentration moyenne uniquement, pas d'indices géochimiques.
+    if (isParticulate(m.element)) return { station: m.station, lat: m.lat, lon: m.lon, element: m.element, conc: m.conc, ref: NaN, fc: NaN, igeo: NaN, pi: NaN, er: null, tf: null };
     const ref = refOf(m.element);
     const fc = ref > 0 ? m.conc / ref : NaN;
     const tf = TOXIC_FACTOR[m.element] ?? null;
@@ -175,7 +181,10 @@ export function computeIndices(rows: Row[], matrix: Matrix, refOf: (el: string) 
   });
   const byStation = new Map<string, IndexRow[]>();
   for (const i of idx) byStation.set(i.station, [...(byStation.get(i.station) ?? []), i]);
-  const stations: StationIdx[] = [...byStation.entries()].map(([station, list]) => {
+  const stations: StationIdx[] = [...byStation.entries()].map(([station, all]) => {
+    // Les indices intégrés (PLI, Cd, RI, Nemerow) ne portent que sur les éléments géochimiques, pas sur les particules.
+    const list = all.filter((l) => !isParticulate(l.element));
+    if (!list.length) return { station, lat: all[0]!.lat, lon: all[0]!.lon, n: 0, pli: NaN, cd: NaN, ri: NaN, nemerow: NaN };
     const fcs = list.map((l) => l.fc).filter((x) => Number.isFinite(x) && x > 0);
     const pli = fcs.length ? Math.exp(fcs.reduce((a, b) => a + Math.log(b), 0) / fcs.length) : NaN;
     const cd = fcs.reduce((a, b) => a + b, 0);
@@ -248,7 +257,7 @@ export function sampleCSV(): string {
   const cfg: Record<Matrix, { unit: string; els: Record<string, number> }> = {
     Sol: { unit: "mg/kg", els: { Pb: 45, Cd: 0.9, Cr: 70, Cu: 40, Zn: 150, As: 9, Hg: 0.3, Ni: 35, Co: 12 } },
     Eau: { unit: "mg/L", els: { Pb: 0.008, Cd: 0.002, Cr: 0.03, Cu: 0.4, Zn: 0.9, As: 0.007, Hg: 0.0008, Ni: 0.03 } },
-    Air: { unit: "µg/m³", els: { Pb: 0.3, Cd: 0.004, As: 0.005, Ni: 0.015 } },
+    Air: { unit: "µg/m³", els: { Pb: 0.3, Cd: 0.004, As: 0.005, Ni: 0.015, "PM2.5": 18, PM10: 45 } },
   };
   const lines = [REQUIRED.join(";")];
   for (const [mat, c] of Object.entries(cfg) as [Matrix, (typeof cfg)["Sol"]][]) {

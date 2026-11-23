@@ -195,13 +195,25 @@ export const NORMS: Norm[] = [
   {
     id: "oms-air",
     matrix: "Air",
-    name: "OMS — Qualité de l'air",
-    source: "WHO Air Quality Guidelines for Europe, 2nd ed. (2000) ; WHO Global AQG (2021)",
+    name: "OMS — Qualité de l'air (moyenne annuelle)",
+    source: "WHO Air Quality Guidelines for Europe, 2nd ed. (2000) pour les métaux ; WHO global air quality guidelines (2021) pour PM2.5 et PM10",
     limits: [
       L("Pb", 0.5, "µg/m³", "Moyenne annuelle"),
       L("Cd", 0.005, "µg/m³", "Moyenne annuelle"),
       L("Hg", 1, "µg/m³", "Moyenne annuelle"),
       L("Mn", 0.15, "µg/m³", "Moyenne annuelle"),
+      L("PM2.5", 5, "µg/m³", "Moyenne annuelle (AQG 2021)"),
+      L("PM10", 15, "µg/m³", "Moyenne annuelle (AQG 2021)"),
+    ],
+  },
+  {
+    id: "oms-air-24h",
+    matrix: "Air",
+    name: "OMS 2021 — Particules, moyenne sur 24 h",
+    source: "WHO global air quality guidelines (2021) : niveaux AQG sur 24 h, correspondant au 99e centile (3 à 4 jours de dépassement par an)",
+    limits: [
+      L("PM2.5", 15, "µg/m³", "Moyenne 24 h (AQG 2021, 99e centile)"),
+      L("PM10", 45, "µg/m³", "Moyenne 24 h (AQG 2021, 99e centile)"),
     ],
   },
   {
@@ -242,3 +254,10 @@ export const TOXIC_FACTOR: Record<string, number> = {
 export const CRUST_BACKGROUND: Record<string, number> = {
   As: 13, Cd: 0.3, Cr: 90, Cu: 45, Pb: 20, Hg: 0.4, Ni: 68, Zn: 95, Co: 19, Mn: 850, V: 130, Sb: 1.5, Se: 0.6,
 };
+
+/**
+ * Particules en suspension. Ce ne sont pas des éléments géochimiques : elles sont évaluées par rapport
+ * aux valeurs guides (conformité, graphiques, cartes de concentration), mais pas par les indices FC, Igeo, Er, PLI, etc.
+ */
+export const PARTICULATES = ["PM2.5", "PM10"];
+export const isParticulate = (el: string) => PARTICULATES.includes(el);

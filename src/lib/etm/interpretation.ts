@@ -1,5 +1,5 @@
 import { convert, fmt, interp, type ConfRow, type IndexRow, type Row, type StationIdx } from "./analysis";
-import { BASE_UNIT, CRUST_BACKGROUND, type Matrix } from "./norms";
+import { BASE_UNIT, CRUST_BACKGROUND, isParticulate, type Matrix } from "./norms";
 import { projector, type CVResult, type SPoint, type VModel, type fitVariogram } from "./spatial";
 
 /**
@@ -310,9 +310,11 @@ export function interpretLimits(d: ReportInput): Item[] {
   const unitIssue = d.conf.filter((c) => c.limit != null && c.ratio == null).length;
   if (unitIssue) out.push({ text: `${unitIssue} ${pl(unitIssue, "mesure")} ${pl(unitIssue, "n'a pas pu être comparée", "n'ont pas pu être comparées")} à ${unitIssue > 1 ? "leur" : "sa"} limite en raison d'unités incompatibles.` });
 
+  if (d.elements.some(isParticulate)) out.push({ text: "Les particules (PM2.5, PM10) ne sont pas intégrées aux indices géochimiques : elles sont évaluées uniquement par comparaison aux valeurs guides du référentiel retenu. Chaque mesure est comparée individuellement à la valeur guide, alors que la valeur annuelle de l'OMS s'applique à une moyenne sur l'année et celle sur 24 h au 99e centile des moyennes journalières : le taux de dépassement observé est donc indicatif." });
+
   // Valeurs de référence des indices
   const matrix = d.matrix as Matrix;
-  const refs = d.elements.map((el) => ({ el, row: d.idx.find((r) => r.element === el), lim: d.conf.find((c) => c.element === el && c.limit != null) })).filter((x) => x.row);
+  const refs = d.elements.map((el) => ({ el, row: d.idx.find((r) => r.element === el), lim: d.conf.find((c) => c.element === el && c.limit != null) })).filter((x) => x.row && !isParticulate(x.el));
   if (refs.length) {
     const base = BASE_UNIT[matrix] ?? "";
     out.push({ text: `Les indices FC, PI, Igeo et Er dépendent de la valeur de référence adoptée pour chaque élément (${refs.map((x) => `${x.el} : ${fr(x.row!.ref, 3)}`).join(" ; ")}${base ? ` ${base}` : ""}).` });

@@ -7,7 +7,7 @@ import { EmptyData, PageHeader, Panel } from "@/components/etm/ui";
 import { DataTable } from "@/components/etm/DataTable";
 import { exportCols, idxCols, stationCols } from "@/components/etm/columns";
 import { useAnalysis } from "@/lib/etm/store";
-import { BASE_UNIT, TOXIC_FACTOR } from "@/lib/etm/norms";
+import { BASE_UNIT, isParticulate, TOXIC_FACTOR } from "@/lib/etm/norms";
 import { pageHead } from "@/lib/etm/head";
 import { cn } from "@/lib/utils";
 
@@ -36,7 +36,7 @@ function Indices() {
       <PageHeader title="Indices de pollution géochimiques" desc="Les indices sont calculés sur la concentration moyenne par station et par élément, rapportée à la valeur de fond géochimique saisie ci-dessous." />
       <Panel
         title="Concentrations de référence (fond géochimique)"
-        desc={`Unité : ${BASE_UNIT[a.matrix]}. ${a.matrix === "Sol" ? "Valeurs par défaut : shale moyen (Turekian & Wedepohl, 1961)." : "Par défaut : limite du référentiel choisi."}`}
+        desc={`Unité : ${BASE_UNIT[a.matrix]}. ${a.matrix === "Sol" ? "Valeurs par défaut : shale moyen (Turekian & Wedepohl, 1961)." : "Par défaut : limite du référentiel choisi."}${a.elements.some(isParticulate) ? " Les particules (PM2.5, PM10) ne sont pas concernées : elles sont évaluées dans l'analyse de conformité (valeurs guides OMS)." : ""}`}
         actions={
           <Button size="sm" variant="ghost" onClick={() => a.elements.forEach((el) => a.setRef(el, undefined))}>
             <RotateCcw className="mr-1.5 h-4 w-4" />
@@ -45,7 +45,7 @@ function Indices() {
         }
       >
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-9">
-          {a.elements.map((el) => (
+          {a.elements.filter((el) => !isParticulate(el)).map((el) => (
             <label key={el} className="rounded-lg border p-2.5">
               <div className="mb-1 flex items-center justify-between text-xs">
                 <span className="font-semibold">{el}</span>

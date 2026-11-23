@@ -12,5 +12,6 @@ export const REFERENCES = [
   "Ontario, Ministère de l'Environnement, de la Protection de la nature et des Parcs (MECP). Critères de qualité de l'air ambiant (AAQC) ; Règl. de l'Ont. 337 (RRO 1990).",
   "Union européenne (2020). Directive (UE) 2020/2184 relative à la qualité des eaux destinées à la consommation humaine.",
   "Union européenne (2004, 2008). Directives 2004/107/CE et 2008/50/CE concernant la qualité de l'air ambiant.",
-  "WHO (2000, 2021). Air Quality Guidelines for Europe ; WHO Global Air Quality Guidelines.",
+  "WHO (2000). Air Quality Guidelines for Europe, 2nd ed. WHO Regional Publications, European Series, No. 91. Copenhague : OMS Bureau régional de l'Europe.",
+  "WHO (2021). WHO global air quality guidelines: particulate matter (PM2.5 and PM10), ozone, nitrogen dioxide, sulfur dioxide and carbon monoxide. Genève : OMS.",
 ];
